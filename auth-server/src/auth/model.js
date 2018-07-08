@@ -20,6 +20,30 @@ userSchema.pre('save', function(next) {
     .catch( error => {throw error;} );
 });
 
+userSchema.statics.createFromOAuth = function(incoming) {
+
+  if ( ! incoming || ! incoming.email ) {
+    return Promise.reject('VALIDATION ERROR: missing username/email or password ');
+  }
+
+  return this.findOne({email:incoming.email})
+    .then(user => {
+      if ( ! user ) { throw new Error ('User Not Found'); }
+      console.log('Welcome Back', user.username);
+      return user;
+    })
+    .catch( error => {
+      let username = incoming.email;
+      let password = 'none';
+      return this.create({
+        username: username,
+        password: password,
+        email: incoming.email,
+      });
+    });
+
+};
+
 
 userSchema.statics.authenticate = function(auth) {
   let query = {username:auth.username};
@@ -43,7 +67,6 @@ userSchema.methods.comparePassword = function(password) {
   return bcrypt.compare(password, this.password)
     .then(valid => valid ? this : null);
 };
-
 
 userSchema.methods.generateToken = function() {
   return jwt.sign( {id:this._id}, process.env.SECRET || 'changeit' );
